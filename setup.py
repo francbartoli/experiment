@@ -97,5 +97,14 @@ setup(
     packages = find_packages(),
     package_data = {},
 
-    classifiers = CLASSIFIERS
+    classifiers = CLASSIFIERS, install_requires=['version',
+                                                 'numpy',
+                                                 'xarray',
+                                                 'dask',
+                                                 'h5py',
+                                                 'netcdf4',
+                                                 'numpy',
+                                                 'pyyaml',
+                                                 'pytest',
+                                                 'tqdm']
 )

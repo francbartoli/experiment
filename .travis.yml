@@ -9,19 +9,17 @@ notifications:
 matrix:
     fast_finish: true
     include:
-        - python: 3.5
-          env:
-            - CONDA_ENV=py35
-            - TRAVIS_PYTHON_VERSION=3.5
-        - python: 2.7
-            - CONDA_ENV=py27
-            - TRAVIS_PYTHON_VERSION=2.7
+        - python:
+            - 3.5
+            - 2.7
 
 before_install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-        wget http://repo.continuum.io/miniconda/Miniconda-3.16.0-Linux-x86_64.sh -O miniconda.sh; export CONDA_ENV=py27;
+        wget http://repo.continuum.io/miniconda/Miniconda-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+        export CONDA_ENV=py27
       else
-        wget http://repo.continuum.io/miniconda/Miniconda3-3.16.0-Linux-x86_64.sh -O miniconda.sh; export CONDA_ENV=py35;
+        wget http://repo.continuum.io/miniconda/Miniconda3-3.16.0-Linux-x86_64.sh -O miniconda.sh;
+        export CONDA_ENV=py35
       fi
     - bash miniconda.sh -b -p $HOME/miniconda
     - export PATH="$HOME/miniconda/bin:$PATH"

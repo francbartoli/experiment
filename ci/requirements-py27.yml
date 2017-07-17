@@ -1,0 +1,14 @@
+name: test_env
+dependencies:
+    - python=2.7
+    - dask
+    - h5py
+    - netcdf4
+    - numpy
+    - pytest
+    - pyyaml
+    - xarray
+    - pip:
+        - coveralls
+        - pytest-cov
+        - h5netcdf

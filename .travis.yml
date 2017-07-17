@@ -9,9 +9,8 @@ notifications:
 matrix:
     fast_finish: true
     include:
-        - python:
-            - 3.5
-            - 2.7
+        - python: 3.5
+        - python: 2.7
 
 before_install:
     - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then

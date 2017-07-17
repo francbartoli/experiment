@@ -1,6 +1,6 @@
 # experiment: Managing modeling experiment output
 
-[![Build Status](https://travis-ci.org/darothen/experiment.svg?branch=master)](https://travis-ci.org/darothen/experiment)
+[![Build Status](https://travis-ci.org/francbartoli/experiment.svg?branch=master)](https://travis-ci.org/francbartoli/experiment)
 
 **experiment** is designed to help you manage your modeling/data analysis workflows using [xarray][].
 

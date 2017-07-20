@@ -12,24 +12,57 @@ import xarray as xr
 from experiment import Experiment, Case
 
 PATH_TO_DATA = os.path.join(os.path.dirname(__file__), "RCM data")
+SEPARATOR = "_"
 cases = [
-    Case("param1", "Parameter 1", ["Temperature Climate Data"]),
-    Case("param2", "Parameter 2", ["Temperature",
-                                   "Max Temperature",
-                                   "Min Temperature"]),
-    Case("param3", "Parameter 3", ["1986-2005", "2046-2065", "2081-2100"]),
-    Case("param4", "Parameter 4", ["RCP4.5", "RCP8.5"]),
-    Case("param5", "Parameter 5", ["CNRM-CM5", "EC-EARTH", "GFDL-ESM2M"]),
+    Case("category", "Climate Data Category", ["Temperature Climate Data"]),
+    Case("variable", "Climate Variable", ["Temperature",
+                                          "Max Temperature",
+                                          "Min Temperature"]),
+    Case("period", "Time Period", ["1986-2005",
+                                   "2046-2065",
+                                   "2081-2100"]),
+    Case("scenario", "Climate Scenario", ["RCP4.5",
+                                          "RCP8.5"]),
+    Case("model", "Climate Model", ["CNRM-CM5",
+                                    "EC-EARTH",
+                                    "GFDL-ESM2M"]),
+    Case("domain", "Domain and Resolution", ["MNA-44"]),
+    Case("orgmodel",
+         "Climate Model and Organization",
+         ["CNRM-CERFACS-CNRM-CM5", "ICHEC-EC-EARTH", "NOAA-GFDL-GFDL-ESM2M"]
+         ),
+    Case("historical", "Historical Climate Scenario", ["historicalandrcp45",
+                                                       "historicalandrcp85"]),
+    Case("rcm", "RCM Used", ["r1i1p1_SMHI-RCA4"
+                             "r12i1p1_SMHI-RCA4"]),
+    Case("correction", "Data Correction Used", ["v1-bc-dbs-wfdei"]),
+    Case("frequency", "Frequency Time Unit", ["day"]),
+
 ]
 exp = Experiment(
     "RCM data", cases, timeseries=True, data_dir=PATH_TO_DATA,
     # Temperature\ Climate\ Data/Temperature\ 1986-2005\ RCP8.5/EC-EARTH
-    case_path="{param1}/{param2} {param3} {param4}/{param5}",
-    output_prefix="{param1}.{param2}.{param3}.{param4}-{param5}",
+    case_path="{category}/{variable} {period} {scenario}/{model}",
+    output_prefix=SEPARATOR + "{domain}" + SEPARATOR + \
+                              "{orgmodel}" + SEPARATOR + \
+                              "{historical}" + SEPARATOR + \
+                              "{rcm}" + SEPARATOR + \
+                              "{correction}" + SEPARATOR + \
+                              "{frequency}" + SEPARATOR,
     output_suffix=".nc", validate_data=False
 )
 
 VARS = ["tas", "tasmin", "tasmax"]
+# VARS = ["tas", "tasmin", "tasmax", "pr", ]
+
+
+# def _build_rcm_output_prefix(**case_kwargs):
+
+#     rcm_prefix = SEPARATOR + "MNA-44" + SEPARATOR
+#     for k, v in case_kwargs:
+#         print k, v
+#     return rcm_prefix
+#     pass
 
 
 def _make_dataset(varname, seed=None, **var_kws):
@@ -64,6 +97,7 @@ if __name__ == "__main__":
             print e
             pass
 
+        # _build_rcm_output_prefix(**case_kws)
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 
@@ -75,4 +109,4 @@ if __name__ == "__main__":
             ds = _make_dataset(v)
             ds.to_netcdf(absolute_filename)
 
-    exp.to_yaml(os.path.join(root, "rcm_data.yaml"))
+    exp.to_yaml(os.path.join(PATH_TO_DATA, "rcm_data.yaml"))

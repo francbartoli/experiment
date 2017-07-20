@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """
-This script auto-generates a sample on-disk dataset for testing.
+This script auto-generates a RCM data sample on-disk dataset for testing.
 
 """
+from __future__ import print_function
 
 import numpy as np
 import os

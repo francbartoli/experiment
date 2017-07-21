@@ -27,7 +27,7 @@ cases = [
     Case("model", "Climate Model", ["CNRM-CM5",
                                     "EC-EARTH",
                                     "GFDL-ESM2M"]),
-    Case("domain", "Domain and Resolution", ["MNA-44"]),
+    Case("domain", "Domain and Resolution", ["MNA-44", "MNA-22"]),
     Case("orgmodel",
          "Climate Model and Organization",
          ["CNRM-CERFACS-CNRM-CM5", "ICHEC-EC-EARTH", "NOAA-GFDL-GFDL-ESM2M"]
@@ -85,6 +85,12 @@ def _make_dataset(varname, seed=None, **var_kws):
     return ds
 
 
+def _unmatched_args(**kwargs):
+    if kwargs['historical'].replace('historicaland', '') == kwargs['scenario'].lower().replace('.', ''):
+        return False
+    return True
+
+
 if __name__ == "__main__":
 
     root = exp.data_dir
@@ -95,10 +101,12 @@ if __name__ == "__main__":
             os.makedirs(full_path)
         except OSError as e:
             # if e.errno != errno.EEXIST:
-            print e
+            print(e)
             pass
 
-        # _build_rcm_output_prefix(**case_kws)
+        # skip if scenario and historical cases don't match
+        if _unmatched_args(**case_kws):
+            continue
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 

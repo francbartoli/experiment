@@ -40,7 +40,7 @@ cases = [
                              "r12i1p1_SMHI-RCA4"]),
     Case("correction", "Data Correction Used", ["v1-bc-dbs-wfdei"]),
     Case("frequency", "Frequency Time Unit", ["day"]),
-
+    Case("period", "Fixed period of entire Dataset", ["19510101-21001231"])
 ]
 exp = Experiment(
     "RCM data", cases, timeseries=True, data_dir=PATH_TO_DATA,
@@ -51,7 +51,8 @@ exp = Experiment(
                               "{historical}" + SEPARATOR + \
                               "{rcm}" + SEPARATOR + \
                               "{correction}" + SEPARATOR + \
-                              "{frequency}" + SEPARATOR,
+                              "{frequency}" + SEPARATOR + \
+                              "{period}" + SEPARATOR,
     output_suffix=".nc", validate_data=False
 )
 
@@ -113,9 +114,12 @@ if __name__ == "__main__":
         # skip if scenario and historical cases don't match
         if _unmatched_args(**case_kws):
             continue
-        prefix = exp.case_prefix(**case_kws) + \
-            _build_timerange(case_kws['period']).start.format('YYYYMMDD') + \
-            "-" + _build_timerange(case_kws['period']).end.format('YYYYMMDD')
+        if not case_kws['period']:
+            prefix = exp.case_prefix(**case_kws) + _build_timerange(
+                case_kws['period']).start.format('YYYYMMDD') + \
+                "-" + _build_timerange(
+                case_kws['period']).end.format('YYYYMMDD')
+        prefix = exp.case_prefix(**case_kws)
         # print(_build_timerange(case_kws['period']).start.format('YYYYMMDD'))
         suffix = exp.output_suffix
 

@@ -92,9 +92,14 @@ def _build_timerange(period):
         yran = period.split('-')
     except IndexError:
         print("Damn! No - symbols exist!")
-    Timerange = namedtuple('Timerange', 'start end')
-    timerange = Timerange(rrow.Arrow(int(yran[0]), 1, 1),
-                          rrow.Arrow(int(yran[1]), 12, 31))
+    startdate = rrow.Arrow(int(yran[0]), 1, 1)
+    enddate = rrow.Arrow(int(yran[1]), 12, 31)
+    Timerange = namedtuple('Timerange', 'start end range')
+    timerange = Timerange(startdate,
+                          enddate,
+                          rrow.Arrow.span_range('year',
+                                                startdate,
+                                                enddate))
     return timerange
 
 
@@ -124,11 +129,14 @@ if __name__ == "__main__":
         suffix = exp.output_suffix
 
         for v in VARS:
-            fn = v + prefix + suffix
-            absolute_filename = os.path.join(full_path, fn)
+            for r in _build_timerange(case_kws['period']).range:
+                fn = v + prefix + \
+                    r[1].ceil('year').format('YYYY') + SEPARATOR + \
+                    r[1].ceil('year').format('YYYY') + suffix
+                absolute_filename = os.path.join(full_path, fn)
 
-            print(absolute_filename)
-            ds = _make_dataset(v)
-            ds.to_netcdf(absolute_filename)
+                print(absolute_filename)
+                ds = _make_dataset(v)
+                ds.to_netcdf(absolute_filename)
 
     exp.to_yaml(os.path.join(PATH_TO_DATA, "rcm_data.yaml"))

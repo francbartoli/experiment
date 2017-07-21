@@ -4,11 +4,13 @@ This script auto-generates a RCM data sample on-disk dataset for testing.
 
 """
 from __future__ import print_function
+from collections import namedtuple
 
 import numpy as np
 import os
 import pandas as pd
 import xarray as xr
+import arrow as rrow
 
 from experiment import Experiment, Case
 
@@ -57,15 +59,6 @@ VARS = ["tas", "tasmin", "tasmax"]
 # VARS = ["tas", "tasmin", "tasmax", "pr", ]
 
 
-# def _build_rcm_output_prefix(**case_kwargs):
-
-#     rcm_prefix = SEPARATOR + "MNA-44" + SEPARATOR
-#     for k, v in case_kwargs:
-#         print k, v
-#     return rcm_prefix
-#     pass
-
-
 def _make_dataset(varname, seed=None, **var_kws):
     rs = np.random.RandomState(seed)
 
@@ -86,9 +79,22 @@ def _make_dataset(varname, seed=None, **var_kws):
 
 
 def _unmatched_args(**kwargs):
-    if kwargs['historical'].replace('historicaland', '') == kwargs['scenario'].lower().replace('.', ''):
+    if ((kwargs['historical'].replace(
+            'historicaland', '') == kwargs['scenario'].lower().replace(
+            '.', '')) and (kwargs['model'] in kwargs['orgmodel'])):
         return False
     return True
+
+
+def _build_timerange(period):
+    try:
+        yran = period.split('-')
+    except IndexError:
+        print("Damn! No - symbols exist!")
+    Timerange = namedtuple('Timerange', 'start end')
+    timerange = Timerange(rrow.Arrow(int(yran[0]), 1, 1),
+                          rrow.Arrow(int(yran[1]), 12, 31))
+    return timerange
 
 
 if __name__ == "__main__":
@@ -107,7 +113,10 @@ if __name__ == "__main__":
         # skip if scenario and historical cases don't match
         if _unmatched_args(**case_kws):
             continue
-        prefix = exp.case_prefix(**case_kws)
+        prefix = exp.case_prefix(**case_kws) + \
+            _build_timerange(case_kws['period']).start.format('YYYYMMDD') + \
+            "-" + _build_timerange(case_kws['period']).end.format('YYYYMMDD')
+        # print(_build_timerange(case_kws['period']).start.format('YYYYMMDD'))
         suffix = exp.output_suffix
 
         for v in VARS:

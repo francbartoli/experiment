@@ -34,7 +34,7 @@ cases = [
          ),
     Case("historical", "Historical Climate Scenario", ["historicalandrcp45",
                                                        "historicalandrcp85"]),
-    Case("rcm", "RCM Used", ["r1i1p1_SMHI-RCA4"
+    Case("rcm", "RCM Used", ["r1i1p1_SMHI-RCA4",
                              "r12i1p1_SMHI-RCA4"]),
     Case("correction", "Data Correction Used", ["v1-bc-dbs-wfdei"]),
     Case("frequency", "Frequency Time Unit", ["day"]),

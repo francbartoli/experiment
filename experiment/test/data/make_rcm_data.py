@@ -4,11 +4,13 @@ This script auto-generates a RCM data sample on-disk dataset for testing.
 
 """
 from __future__ import print_function
+from collections import namedtuple
 
 import numpy as np
 import os
 import pandas as pd
 import xarray as xr
+import arrow as rrow
 
 from experiment import Experiment, Case
 
@@ -27,18 +29,20 @@ cases = [
     Case("model", "Climate Model", ["CNRM-CM5",
                                     "EC-EARTH",
                                     "GFDL-ESM2M"]),
-    Case("domain", "Domain and Resolution", ["MNA-44"]),
+    Case("domain", "Domain and Resolution", ["MNA-44", "MNA-22"]),
     Case("orgmodel",
          "Climate Model and Organization",
          ["CNRM-CERFACS-CNRM-CM5", "ICHEC-EC-EARTH", "NOAA-GFDL-GFDL-ESM2M"]
          ),
     Case("historical", "Historical Climate Scenario", ["historicalandrcp45",
                                                        "historicalandrcp85"]),
-    Case("rcm", "RCM Used", ["r1i1p1_SMHI-RCA4"
+    Case("rcm", "RCM Used", ["r1i1p1_SMHI-RCA4",
                              "r12i1p1_SMHI-RCA4"]),
     Case("correction", "Data Correction Used", ["v1-bc-dbs-wfdei"]),
     Case("frequency", "Frequency Time Unit", ["day"]),
-
+    Case("fixedperiod",
+         "Fixed period of entire Dataset",
+         ["19510101-21001231"])
 ]
 exp = Experiment(
     "RCM data", cases, timeseries=True, data_dir=PATH_TO_DATA,
@@ -49,21 +53,13 @@ exp = Experiment(
                               "{historical}" + SEPARATOR + \
                               "{rcm}" + SEPARATOR + \
                               "{correction}" + SEPARATOR + \
-                              "{frequency}" + SEPARATOR,
+                              "{frequency}" + SEPARATOR + \
+                              "{fixedperiod}" + SEPARATOR,
     output_suffix=".nc", validate_data=False
 )
 
 VARS = ["tas", "tasmin", "tasmax"]
 # VARS = ["tas", "tasmin", "tasmax", "pr", ]
-
-
-# def _build_rcm_output_prefix(**case_kwargs):
-
-#     rcm_prefix = SEPARATOR + "MNA-44" + SEPARATOR
-#     for k, v in case_kwargs:
-#         print k, v
-#     return rcm_prefix
-#     pass
 
 
 def _make_dataset(varname, seed=None, **var_kws):
@@ -85,6 +81,30 @@ def _make_dataset(varname, seed=None, **var_kws):
     return ds
 
 
+def _unmatched_args(**kwargs):
+    if ((kwargs['historical'].replace(
+            'historicaland', '') == kwargs['scenario'].lower().replace(
+            '.', '')) and (kwargs['model'] in kwargs['orgmodel'])):
+        return False
+    return True
+
+
+def _build_timerange(period):
+    try:
+        yran = period.split('-')
+    except IndexError:
+        print("Damn! No - symbols exist!")
+    startdate = rrow.Arrow(int(yran[0]), 1, 1)
+    enddate = rrow.Arrow(int(yran[1]), 12, 31)
+    Timerange = namedtuple('Timerange', 'start end range')
+    timerange = Timerange(startdate,
+                          enddate,
+                          rrow.Arrow.span_range('year',
+                                                startdate,
+                                                enddate))
+    return timerange
+
+
 if __name__ == "__main__":
 
     root = exp.data_dir
@@ -95,19 +115,29 @@ if __name__ == "__main__":
             os.makedirs(full_path)
         except OSError as e:
             # if e.errno != errno.EEXIST:
-            print e
+            print(e)
             pass
 
-        # _build_rcm_output_prefix(**case_kws)
+        # skip if scenario and historical cases don't match
+        if _unmatched_args(**case_kws):
+            continue
+        if not case_kws['fixedperiod']:
+            prefix = exp.case_prefix(**case_kws) + _build_timerange(
+                case_kws['period']).start.format('YYYYMMDD') + \
+                "-" + _build_timerange(
+                case_kws['period']).end.format('YYYYMMDD')
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 
         for v in VARS:
-            fn = v + prefix + suffix
-            absolute_filename = os.path.join(full_path, fn)
+            for r in _build_timerange(case_kws['period']).range:
+                fn = v + prefix + \
+                    r[1].ceil('year').format('YYYY') + SEPARATOR + \
+                    r[1].ceil('year').format('YYYY') + suffix
+                absolute_filename = os.path.join(full_path, fn)
 
-            print(absolute_filename)
-            ds = _make_dataset(v)
-            ds.to_netcdf(absolute_filename)
+                print(absolute_filename)
+                ds = _make_dataset(v)
+                ds.to_netcdf(absolute_filename)
 
     exp.to_yaml(os.path.join(PATH_TO_DATA, "rcm_data.yaml"))

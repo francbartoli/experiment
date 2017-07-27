@@ -6,6 +6,7 @@ This script auto-generates a sample on-disk dataset for testing.
 
 import numpy as np
 import os
+import errno
 import pandas as pd
 import xarray as xr
 
@@ -25,6 +26,7 @@ exp = Experiment(
 )
 
 VARS = ["temp", "pres", "precip"]
+# VARS = Var(["temp", "pres", "precip"], False)
 
 
 def _make_dataset(varname, seed=None, **var_kws):
@@ -52,13 +54,18 @@ if __name__ == "__main__":
 
     for path, case_kws in exp._walk_cases(with_kws=True):
         full_path = os.path.join(root, path)
-        os.makedirs(full_path, exist_ok=True)
+        try:
+            os.makedirs(full_path)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
 
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 
         for v in VARS:
-            fn = prefix + v + suffix
+            # fn = prefix + v + suffix
+            fn = exp.build_prefix(prefix, v, False) + suffix
             absolute_filename = os.path.join(full_path, fn)
 
             print(absolute_filename)

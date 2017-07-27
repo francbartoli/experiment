@@ -53,6 +53,7 @@ from . convert import create_master
 # logger = logging.getLogger(__name__)
 
 Case = namedtuple('case', ['shortname', 'longname', 'vals'])
+Var = namedtuple('var', ['varname', 'initialposition'])
 
 #: Hack for Py2/3 basestring type compatibility
 if 'basestring' not in globals():
@@ -90,6 +91,7 @@ class Experiment(object):
                  timeseries=False,
                  data_dir='./',
                  case_path=None,
+                 initial_position=False,
                  output_prefix="",
                  output_suffix=".nc",
                  validate_data=True):
@@ -116,6 +118,9 @@ class Experiment(object):
             you can supply a string with named format directives indicating the
             case bits to use or a function which creates the path from the
             case bits
+        initial_position: bool, optional (default False)
+            If "True" then all output filenames will be created with the field
+            before the prefix.
         output_prefix : str or function
             Global prefix for all output files as a string, which can optionally
             include named format directives indicated which case bit to supply
@@ -163,6 +168,8 @@ class Experiment(object):
             # Location of existing data
             assert os.path.exists(data_dir)
             self._validate_data()
+        if not initial_position:
+            self.initial_position = initial_position
 
     # Validation methods
     def _validate_data(self):
@@ -206,9 +213,9 @@ class Experiment(object):
                 yield self.case_path(**case_kws)
 
 
-    def walk_files(self, field):
+    def walk_files(self, field, before):
         """ Walk through all the files in this experiment with the given output
-        field name
+        field name and its relative position to prefix
 
         Returns
         -------
@@ -223,7 +230,7 @@ class Experiment(object):
             path_to_file = os.path.join(
                 self.data_dir,
                 self.case_path(**case_kws),
-                prefix + field + suffix,
+                self.build_prefix(prefix, field, before) + suffix,
             )
 
             yield case_kws, path_to_file
@@ -324,6 +331,13 @@ class Experiment(object):
         else:
             return self.output_suffix.format(**case_kws)
 
+    def build_prefix(self, input_prefix, varbl, setinitpos):
+        if setinitpos:
+            return varbl + input_prefix
+        else:
+            # default behavior
+            return input_prefix + varbl
+
     # Loading methods
     def load(self, var, fix_times=False, master=False, preprocess=None,
              load_kws={}, **case_kws):
@@ -375,6 +389,7 @@ class Experiment(object):
         is_var = not isinstance(var, basestring)
         if is_var:
             field = var.varname
+            setbefore = var.initialposition
             is_var = True
         else:
             field = var
@@ -387,7 +402,7 @@ class Experiment(object):
             path_to_file = os.path.join(
                 self.data_dir,
                 self.case_path(**case_kws),
-                prefix + field + suffix,
+                build_prefix(prefix, field, setbefore) + suffix,
             )
             logger.debug("{} - loading {} timeseries from {}".format(
                 self.name, field, path_to_file
@@ -482,7 +497,7 @@ class Experiment(object):
             iterator = tqdm(keys, desc=desc_str, total=n_tot)
         else:
             iterator = keys
-        
+
         for key in iterator:
             if isinstance(data[key], dict):
                 new_data[key] = apply_to_all(data[key], func, **func_kws)

@@ -131,6 +131,7 @@ if __name__ == "__main__":
 
         for v in VARS:
             for r in _build_timerange(case_kws['period']).range:
+                # @TODO match variable from path
                 fn = v + prefix + \
                     r[1].ceil('year').format('YYYY') + SEPARATOR + \
                     r[1].ceil('year').format('YYYY') + suffix

@@ -8,6 +8,7 @@ from collections import namedtuple
 
 import numpy as np
 import os
+import errno
 import pandas as pd
 import xarray as xr
 import arrow as rrow
@@ -114,9 +115,8 @@ if __name__ == "__main__":
         try:
             os.makedirs(full_path)
         except OSError as e:
-            # if e.errno != errno.EEXIST:
-            print(e)
-            pass
+            if e.errno != errno.EEXIST:
+                raise
 
         # skip if scenario and historical cases don't match
         if _unmatched_args(**case_kws):

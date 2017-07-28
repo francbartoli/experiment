@@ -8,14 +8,16 @@ from collections import namedtuple
 
 import numpy as np
 import os
+import errno
 import pandas as pd
 import xarray as xr
 import arrow as rrow
 
-from experiment import Experiment, Case
+from experiment import Experiment, Case, Field
 
 PATH_TO_DATA = os.path.join(os.path.dirname(__file__), "RCM data")
 SEPARATOR = "_"
+VARS = Field("temp", "temperature", ["tas", "tasmin", "tasmax"], True)
 cases = [
     Case("category", "Climate Data Category", ["Temperature Climate Data"]),
     Case("variable", "Climate Variable", ["Temperature",
@@ -44,10 +46,14 @@ cases = [
          "Fixed period of entire Dataset",
          ["19510101-21001231"])
 ]
+fieldgroups = [
+    VARS
+]
 exp = Experiment(
-    "RCM data", cases, timeseries=True, data_dir=PATH_TO_DATA,
+    "RCM data", cases, fieldgroups, timeseries=True, data_dir=PATH_TO_DATA,
     # Temperature\ Climate\ Data/Temperature\ 1986-2005\ RCP8.5/EC-EARTH
     case_path="{category}/{variable} {period} {scenario}/{model}",
+    initial_position=True,
     output_prefix=SEPARATOR + "{domain}" + SEPARATOR + \
                               "{orgmodel}" + SEPARATOR + \
                               "{historical}" + SEPARATOR + \
@@ -58,7 +64,9 @@ exp = Experiment(
     output_suffix=".nc", validate_data=False
 )
 
-VARS = ["tas", "tasmin", "tasmax"]
+# VARS = ["tas", "tasmin", "tasmax"]
+# VARS = Field("temp", ["tas", "tasmin", "tasmax"], True)
+
 # VARS = ["tas", "tasmin", "tasmax", "pr", ]
 
 
@@ -114,9 +122,8 @@ if __name__ == "__main__":
         try:
             os.makedirs(full_path)
         except OSError as e:
-            # if e.errno != errno.EEXIST:
-            print(e)
-            pass
+            if e.errno != errno.EEXIST:
+                raise
 
         # skip if scenario and historical cases don't match
         if _unmatched_args(**case_kws):
@@ -129,7 +136,7 @@ if __name__ == "__main__":
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 
-        for v in VARS:
+        for v in VARS.fieldnames:
             for r in _build_timerange(case_kws['period']).range:
                 # @TODO match variable from path
                 fn = v + prefix + \

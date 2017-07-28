@@ -20,12 +20,12 @@ case_emis = \
 case_model_config = \
     Case('model_config', 'Model configuration',
          ['no_clouds', 'no_sun', 'no_sun_no_clouds'])
-nofield = \
+field_empty = \
     Field('empty', 'empty', [''], False)
 default_exp_kws = dict(
     name='my_experiment',
     cases = [case_emis, case_model_config],
-    fieldgroups = [nofield],
+    fieldgroups = [field_empty],
     timeseries=True, data_dir='/path/to/my/data',
     case_path='{emis}/{model_config}',
     output_prefix='experiment_{emis}_{model_config}.data.',
@@ -101,7 +101,7 @@ class TestExperiment(unittest.TestCase):
             self.assertEqual(expected, actual)
 
         # Generic - no format arguments
-        exp = Experiment("Test Experiment", case_list, [nofield],
+        exp = Experiment("Test Experiment", case_list, [field_empty],
                          case_path="", validate_data=False)
         for p in exp._walk_cases():
             self.assertEqual(p, "")

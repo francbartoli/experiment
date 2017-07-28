@@ -14,7 +14,7 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 logger = logging.getLogger(__name__)
 
-from . experiment import Experiment, Case
+from . experiment import Experiment, Case, Field
 from . var import Var, VarList
 
 from . version import  __version__

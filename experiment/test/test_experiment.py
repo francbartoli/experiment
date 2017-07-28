@@ -12,7 +12,7 @@ import unittest
 import yaml
 
 from itertools import product
-from experiment import Experiment, Case
+from experiment import Experiment, Case, Field
 
 
 case_emis = \
@@ -20,9 +20,12 @@ case_emis = \
 case_model_config = \
     Case('model_config', 'Model configuration',
          ['no_clouds', 'no_sun', 'no_sun_no_clouds'])
+nofield = \
+    Field('empty', 'empty', [''], False)
 default_exp_kws = dict(
     name='my_experiment',
     cases = [case_emis, case_model_config],
+    fieldgroups = [nofield],
     timeseries=True, data_dir='/path/to/my/data',
     case_path='{emis}/{model_config}',
     output_prefix='experiment_{emis}_{model_config}.data.',
@@ -98,7 +101,7 @@ class TestExperiment(unittest.TestCase):
             self.assertEqual(expected, actual)
 
         # Generic - no format arguments
-        exp = Experiment("Test Experiment", case_list,
+        exp = Experiment("Test Experiment", case_list, [nofield],
                          case_path="", validate_data=False)
         for p in exp._walk_cases():
             self.assertEqual(p, "")
@@ -200,4 +203,4 @@ class TestExperiment(unittest.TestCase):
         # import ipdb; ipdb.set_trace()
 
         self.assertEqual(["/path/to/my/data/policy/no_clouds/experiment_policy_no_clouds.data.test.tape.nc"],
-                         exp_all_str.get_file_fieldcases('test', **case_kws))
+                         exp_all_str.get_file_fieldcases('test', False, **case_kws))

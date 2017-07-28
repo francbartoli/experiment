@@ -53,7 +53,7 @@ from . convert import create_master
 # logger = logging.getLogger(__name__)
 
 Case = namedtuple('case', ['shortname', 'longname', 'vals'])
-Var = namedtuple('var', ['varname', 'initialposition'])
+Field = namedtuple('field', ['shortname', 'longname', 'fieldnames', 'initialposition'])
 
 #: Hack for Py2/3 basestring type compatibility
 if 'basestring' not in globals():
@@ -82,12 +82,14 @@ class Experiment(object):
         The name of the experiment.
     cases : iterable of Case namedtuples
         The levels of the experimental cases being considered
+    fieldgroups : iterable of Field namedtuples
+        Field groups of the experimental cases being considered
     data_dir : str
         Path to directory containing the unanalyzed data for this
         experiment
     """
 
-    def __init__(self, name, cases,
+    def __init__(self, name, cases, fieldgroups,
                  timeseries=False,
                  data_dir='./',
                  case_path=None,
@@ -103,12 +105,15 @@ class Experiment(object):
             The name of the experiment.
         cases : iterable of Case namedtuples
             The levels of the experimental cases being considered
+        fieldgroups : iterable of Field namedtuples
+            The fields of the experimental cases being considered
         timeseries : logical
             If "True", then the data is in "timeseries" form instead of
             "timeslice" form; that is, in the leaf folders of the archive
             hierarchy, the files are split by variable rather than snapshots
             of all fields at a given time.
         cases : str or list
+        fieldgroups : str or list
         data_dir : str
             Path to directory containing the unanalyzed data for this experiment
         case_path : str or function (optional)
@@ -143,6 +148,15 @@ class Experiment(object):
         except AttributeError:
             raise ValueError("Couldn't process `cases`")
 
+        # Process the fieldgroup data, which is an Iterable of Fields
+        self._fieldgroup_data = OrderedDict()
+        try:
+            for fieldgroup in fieldgroups:
+                assert isinstance(fieldgroup, Field)
+                self._fieldgroup_data[fieldgroup.shortname] = fieldgroup
+        except AttributeError:
+            raise ValueError("Couldn't process `fieldgroups`")
+
         # Mapping to private information on case data
         self._cases = list(self._case_data.keys())
         self._case_vals = OrderedDict()
@@ -152,10 +166,24 @@ class Experiment(object):
         for case in self._cases:
             self._casenames[case] = self._case_data[case].longname
 
+        # Mapping to private information on fieldgroup data
+        self._fieldgroups = list(self._fieldgroup_data.keys())
+        self._fieldgroup_vals = OrderedDict()
+        for fieldgroup in self._fieldgroups:
+            self._fieldgroup_vals[fieldgroup] = self._fieldgroup_data[fieldgroup].fieldnames
+        self._fieldgroupnames = OrderedDict()
+        for fieldgroup in self._fieldgroups:
+            self._fieldgroupnames[fieldgroup] = self._fieldgroup_data[fieldgroup].longname
+
         # Add cases to this instance for "Experiment.[case]" access
         for case, vals in self._case_vals.items():
             setattr(self.__class__, case, vals)
         self.case_tuple = namedtuple('case', field_names=self._cases)
+
+        # Add fieldgroups to this instance for "Experiment.[fieldgroup]" access
+        for fieldgroup, fieldvals in self._fieldgroup_vals.items():
+            setattr(self.__class__, fieldgroup, fieldvals)
+        self.fieldgroup_tuple = namedtuple('field', field_names=self._fieldgroups)
 
         self.timeseries = timeseries
         self.output_prefix = output_prefix
@@ -293,20 +321,23 @@ class Experiment(object):
         """
         return self._case_vals[case]
 
-    def get_file_fieldcases(self, field, **case_kws):
+    def get_file_fieldcases(self, field, isant, **case_kws):
         """ Return a list with the string of filepath and filename
-        associated with a particular case and field.
+        associated with a particular case and field and if its relative
+        position is before the prefix.
 
         Parameters
         ----------
         field : str
             The name of the field to match files for.
+        isant: bool
+            True if field is placed before the prefix
         case_kws: dict
             The dictionary of a particular set of key values for cases from this
             experiment.
 
         """
-        return [fn for case, fn in self.walk_files(field) if case_kws == case] 
+        return [fn for case, fn in self.walk_files(field, isant) if case_kws == case]
 
     def get_case_bits(self, **case_kws):
         """ Return the given case keywords in the order they're defined in
@@ -346,12 +377,12 @@ class Experiment(object):
         else:
             return self.output_suffix.format(**case_kws)
 
-    def build_prefix(self, input_prefix, varbl, setinitpos):
+    def build_prefix(self, input_prefix, fname, setinitpos):
         if setinitpos:
-            return varbl + input_prefix
+            return fname + input_prefix
         else:
             # default behavior
-            return input_prefix + varbl
+            return input_prefix + fname
 
     # Loading methods
     def load(self, var, fix_times=False, master=False, preprocess=None,
@@ -529,10 +560,15 @@ class Experiment(object):
         for case, data in self._case_data.items():
             case_dict[case] = dict(longname=data.longname, vals=data.vals)
 
+        fieldgroup_dict = dict()
+        for fieldgroup, data in self._fieldgroup_data.items():
+            fieldgroup_dict[fieldgroup] = dict(longname=data.longname,
+                                               fieldnames=data.fieldnames)
+
         return dict(
-            name=self.name, cases=case_dict, timeseries=self.timeseries,
-            case_path=self._case_path, output_prefix=self.output_prefix,
-            output_suffix=self.output_suffix,
+            name=self.name, cases=case_dict, fieldgroups=fieldgroup_dict,
+            timeseries=self.timeseries, case_path=self._case_path,
+            output_prefix=self.output_prefix, output_suffix=self.output_suffix,
             data_dir=self.data_dir, validate_data=False
         )
 
@@ -620,6 +656,14 @@ class Experiment(object):
             logger.debug("      {}: {}".format(case_short, case_kws))
             cases.append(Case(case_short, **case_kws))
         exp_kwargs['cases'] = cases
+
+        # Try to instantiate fieldgroups
+        logger.debug("Reading fieldgroup")
+        fieldgroups = []
+        for fieldgroup_short, fieldgroup_kws in exp_kwargs['fieldgroups'].items():
+            logger.debug("      {}: {}".format(fieldgroup_short, fieldgroup_kws))
+            fieldgroups.append(Field(fieldgroup_short, **fieldgroup_kws))
+        exp_kwargs['fieldgroups'] = fieldgroups
 
         # Create and return the Experiment
         exp = cls(**exp_kwargs)

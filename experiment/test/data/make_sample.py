@@ -10,23 +10,24 @@ import errno
 import pandas as pd
 import xarray as xr
 
-from experiment import Experiment, Case
+from experiment import Experiment, Case, Field
 
 PATH_TO_DATA = os.path.join(os.path.dirname(__file__), "sample")
+VARS = ["temp", "pres", "precip"]
 cases = [
     Case("param1", "Parameter 1", ["a", "b", "c"]),
     Case("param2", "Parameter 2", [1, 2, 3]),
     Case("param3", "Parameter 3", ["alpha", "beta"]),
 ]
+fieldgroups = [
+    Field("stdgroup", "Standard variable group", VARS, False)
+]
 exp = Experiment(
-    "sample", cases, timeseries=True, data_dir=PATH_TO_DATA,
+    "sample", cases, fieldgroups, timeseries=True, data_dir=PATH_TO_DATA,
     case_path="{param1}_{param2}",
     output_prefix="{param1}.{param2}.{param3}.",
     output_suffix=".tape.nc", validate_data=False
 )
-
-VARS = ["temp", "pres", "precip"]
-# VARS = Var(["temp", "pres", "precip"], False)
 
 
 def _make_dataset(varname, seed=None, **var_kws):
@@ -63,13 +64,14 @@ if __name__ == "__main__":
         prefix = exp.case_prefix(**case_kws)
         suffix = exp.output_suffix
 
-        for v in VARS:
-            # fn = prefix + v + suffix
-            fn = exp.build_prefix(prefix, v, False) + suffix
-            absolute_filename = os.path.join(full_path, fn)
+        for fieldgroup in fieldgroups:
+            for v in fieldgroup.fieldnames:
+                # fn = prefix + v + suffix
+                fn = exp.build_prefix(prefix, v, fieldgroup.initialposition) + suffix
+                absolute_filename = os.path.join(full_path, fn)
 
-            print(absolute_filename)
-            ds = _make_dataset(v)
-            ds.to_netcdf(absolute_filename)
+                print(absolute_filename)
+                ds = _make_dataset(v)
+                ds.to_netcdf(absolute_filename)
 
     exp.to_yaml(os.path.join(root, "sample.yaml"))

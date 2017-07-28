@@ -293,6 +293,21 @@ class Experiment(object):
         """
         return self._case_vals[case]
 
+    def get_file_fieldcases(self, field, **case_kws):
+        """ Return a list with the string of filepath and filename
+        associated with a particular case and field.
+
+        Parameters
+        ----------
+        field : str
+            The name of the field to match files for.
+        case_kws: dict
+            The dictionary of a particular set of key values for cases from this
+            experiment.
+
+        """
+        return [fn for case, fn in self.walk_files(field) if case_kws == case] 
+
     def get_case_bits(self, **case_kws):
         """ Return the given case keywords in the order they're defined in
         for this experiment. """

@@ -148,15 +148,6 @@ class Experiment(object):
         except AttributeError:
             raise ValueError("Couldn't process `cases`")
 
-        # Process the fieldgroup data, which is an Iterable of Fields
-        self._fieldgroup_data = OrderedDict()
-        try:
-            for fieldgroup in fieldgroups:
-                assert isinstance(fieldgroup, Field)
-                self._fieldgroup_data[fieldgroup.shortname] = fieldgroup
-        except AttributeError:
-            raise ValueError("Couldn't process `fieldgroups`")
-
         # Mapping to private information on case data
         self._cases = list(self._case_data.keys())
         self._case_vals = OrderedDict()
@@ -166,19 +157,30 @@ class Experiment(object):
         for case in self._cases:
             self._casenames[case] = self._case_data[case].longname
 
-        # Mapping to private information on fieldgroup data
-        self._fieldgroups = list(self._fieldgroup_data.keys())
-        self._fieldgroup_vals = OrderedDict()
-        for fieldgroup in self._fieldgroups:
-            self._fieldgroup_vals[fieldgroup] = self._fieldgroup_data[fieldgroup].fieldnames
-        self._fieldgroupnames = OrderedDict()
-        for fieldgroup in self._fieldgroups:
-            self._fieldgroupnames[fieldgroup] = self._fieldgroup_data[fieldgroup].longname
-
         # Add cases to this instance for "Experiment.[case]" access
         for case, vals in self._case_vals.items():
             setattr(self.__class__, case, vals)
         self.case_tuple = namedtuple('case', field_names=self._cases)
+
+        # Process the fieldgroup data, which is an Iterable of Fields
+        self._fieldgroup_data = OrderedDict()
+        try:
+            for fieldgroup in fieldgroups:
+                assert isinstance(fieldgroup, Field)
+                self._fieldgroup_data[fieldgroup.shortname] = fieldgroup
+        except AttributeError:
+            raise ValueError("Couldn't process `fieldgroups`")
+
+        # Mapping to private information on fieldgroup data
+        self._fieldgroups = list(self._fieldgroup_data.keys())
+        self._fieldgroup_vals = OrderedDict()
+        for fieldgroup in self._fieldgroups:
+            self._fieldgroup_vals[fieldgroup] = [
+                self._fieldgroup_data[fieldgroup].fieldnames,
+                self._fieldgroup_data[fieldgroup].initialposition]
+        self._fieldgroupnames = OrderedDict()
+        for fieldgroup in self._fieldgroups:
+            self._fieldgroupnames[fieldgroup] = self._fieldgroup_data[fieldgroup].longname
 
         # Add fieldgroups to this instance for "Experiment.[fieldgroup]" access
         for fieldgroup, fieldvals in self._fieldgroup_vals.items():
@@ -271,6 +273,13 @@ class Experiment(object):
         """
         return self._cases
 
+    @property
+    def fieldgroups(self):
+        """ Property wrapper for list of fieldgroups. Superfluous, but
+        it's really important that it doesn't get changed.
+        """
+        return self._fieldgroups
+
     def itercases(self):
         """ Generator for iterating over the encapsulated case
         information for this experiment
@@ -283,6 +292,19 @@ class Experiment(object):
         """
         for case in self._cases:
             yield case, self._casenames[case], self._case_vals[case]
+
+    def iterfieldgroups(self):
+        """ Generator for iterating over the encapsulated fieldgroup
+        information for this experiment
+
+        >>> for groupfield_info in Experiment.iterfieldgroups():
+        ...     print(groupfield_info)
+        ("temp", "temperature", ["tas", "tasmin", "tasmax"], True)
+        ("precip", "precipitation", ["prec", "precmin", "precmax"], True)
+
+        """
+        for fieldgroup in self._fieldgroups:
+            yield fieldgroup, self._fieldgroupnames[fieldgroup], self._fieldgroup_vals[fieldgroup]
 
     def all_cases(self):
         """ Return an iterable of all the ordered combinations of the
@@ -321,6 +343,18 @@ class Experiment(object):
         """
         return self._case_vals[case]
 
+    def get_fieldgroup_vals(self, fieldgroup):
+        """ Return a list of strings with the values associated
+        with a particular fieldgroup.
+
+        Parameters
+        ----------
+        fieldgroup : str
+            The name of the fieldgroup to fetch values for.
+
+        """
+        return self._fieldgroup_vals[fieldgroup]
+
     def get_file_fieldcases(self, field, isant, **case_kws):
         """ Return a list with the string of filepath and filename
         associated with a particular case and field and if its relative
@@ -337,7 +371,8 @@ class Experiment(object):
             experiment.
 
         """
-        return [fn for case, fn in self.walk_files(field, isant) if case_kws == case]
+        return [fn for case, fn in self.walk_files(field,
+                                                   isant) if case_kws == case]
 
     def get_case_bits(self, **case_kws):
         """ Return the given case keywords in the order they're defined in

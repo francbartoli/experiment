@@ -20,12 +20,12 @@ case_emis = \
 case_model_config = \
     Case('model_config', 'Model configuration',
          ['no_clouds', 'no_sun', 'no_sun_no_clouds'])
-field_empty = \
+emptygroup = \
     Field('empty', 'empty', [''], False)
 default_exp_kws = dict(
     name='my_experiment',
     cases = [case_emis, case_model_config],
-    fieldgroups = [field_empty],
+    fieldgroups = [emptygroup],
     timeseries=True, data_dir='/path/to/my/data',
     case_path='{emis}/{model_config}',
     output_prefix='experiment_{emis}_{model_config}.data.',
@@ -101,7 +101,7 @@ class TestExperiment(unittest.TestCase):
             self.assertEqual(expected, actual)
 
         # Generic - no format arguments
-        exp = Experiment("Test Experiment", case_list, [field_empty],
+        exp = Experiment("Test Experiment", case_list, [emptygroup],
                          case_path="", validate_data=False)
         for p in exp._walk_cases():
             self.assertEqual(p, "")
@@ -200,7 +200,23 @@ class TestExperiment(unittest.TestCase):
             output_suffix=".tape.nc"
         )
         case_kws = dict(emis='policy', model_config='no_clouds')
-        # import ipdb; ipdb.set_trace()
+        fn = "/path/to/my/data/policy/no_clouds/experiment_policy_no_clouds.data.test.tape.nc"
 
-        self.assertEqual(["/path/to/my/data/policy/no_clouds/experiment_policy_no_clouds.data.test.tape.nc"],
+        self.assertEqual([fn],
                          exp_all_str.get_file_fieldcases('test', False, **case_kws))
+
+    def test_cases_field_file_matching(self):
+        """ Test passing a single file from path to Experiment for
+        matching a determined field and cases' value list.  """
+
+        file = "/path/to/my/data/policy/no_clouds/experiment_policy_no_clouds.data.test.tape.nc"
+
+        exp_all_str = make_exp(
+            case_path="{emis}/{model_config}",
+            fieldgroups = [emptygroup],
+            output_prefix="experiment_{emis}_{model_config}.data.",
+            output_suffix=".tape.nc"
+        )
+        case_kws = dict(emis='policy', model_config='no_clouds')
+
+        self.assertEqual(case_kws, exp_all_str.get_cases_fromfile(file))

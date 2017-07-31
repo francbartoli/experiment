@@ -211,12 +211,15 @@ class TestExperiment(unittest.TestCase):
 
         file = "/path/to/my/data/policy/no_clouds/experiment_policy_no_clouds.data.test.tape.nc"
 
+        testgroup = \
+            Field('test', 'test', ['test'], False)
+
         exp_all_str = make_exp(
             case_path="{emis}/{model_config}",
-            fieldgroups = [emptygroup],
+            fieldgroups = [testgroup],
             output_prefix="experiment_{emis}_{model_config}.data.",
             output_suffix=".tape.nc"
         )
         case_kws = dict(emis='policy', model_config='no_clouds')
 
-        self.assertEqual(case_kws, exp_all_str.get_cases_fromfile(file))
+        self.assertEqual([case_kws], exp_all_str.get_cases_fromfile(file))

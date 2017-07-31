@@ -273,13 +273,6 @@ class Experiment(object):
         """
         return self._cases
 
-    @property
-    def fieldgroups(self):
-        """ Property wrapper for list of fieldgroups. Superfluous, but
-        it's really important that it doesn't get changed.
-        """
-        return self._fieldgroups
-
     def itercases(self):
         """ Generator for iterating over the encapsulated case
         information for this experiment
@@ -292,19 +285,6 @@ class Experiment(object):
         """
         for case in self._cases:
             yield case, self._casenames[case], self._case_vals[case]
-
-    def iterfieldgroups(self):
-        """ Generator for iterating over the encapsulated fieldgroup
-        information for this experiment
-
-        >>> for groupfield_info in Experiment.iterfieldgroups():
-        ...     print(groupfield_info)
-        ("temp", "temperature", ["tas", "tasmin", "tasmax"], True)
-        ("precip", "precipitation", ["prec", "precmin", "precmax"], True)
-
-        """
-        for fieldgroup in self._fieldgroups:
-            yield fieldgroup, self._fieldgroupnames[fieldgroup], self._fieldgroup_vals[fieldgroup]
 
     def all_cases(self):
         """ Return an iterable of all the ordered combinations of the
@@ -343,6 +323,26 @@ class Experiment(object):
         """
         return self._case_vals[case]
 
+    @property
+    def fieldgroups(self):
+        """ Property wrapper for list of fieldgroups. Superfluous, but
+        it's really important that it doesn't get changed.
+        """
+        return self._fieldgroups
+
+    def iterfieldgroups(self):
+        """ Generator for iterating over the encapsulated fieldgroup
+        information for this experiment
+
+        >>> for groupfield_info in Experiment.iterfieldgroups():
+        ...     print(groupfield_info)
+        ("temp", "temperature", ["tas", "tasmin", "tasmax"], True)
+        ("precip", "precipitation", ["prec", "precmin", "precmax"], True)
+
+        """
+        for fieldgroup in self._fieldgroups:
+            yield fieldgroup, self._fieldgroupnames[fieldgroup], self._fieldgroup_vals[fieldgroup]
+
     def get_fieldgroup_vals(self, fieldgroup):
         """ Return a list of strings with the values associated
         with a particular fieldgroup.
@@ -373,6 +373,15 @@ class Experiment(object):
         """
         return [fn for case, fn in self.walk_files(field,
                                                    isant) if case_kws == case]
+
+    def get_cases_fromfile(self, filename):
+        """
+        """
+        for fieldgroup in self.fieldgroups:
+            for field in self.get_fieldgroup_vals(fieldgroup)[0]:
+                return [case for case, fn in self.walk_files(field,
+                        self.get_fieldgroup_vals(fieldgroup)[1])
+                        if filename in fn]
 
     def get_case_bits(self, **case_kws):
         """ Return the given case keywords in the order they're defined in
@@ -598,7 +607,8 @@ class Experiment(object):
         fieldgroup_dict = dict()
         for fieldgroup, data in self._fieldgroup_data.items():
             fieldgroup_dict[fieldgroup] = dict(longname=data.longname,
-                                               fieldnames=data.fieldnames)
+                                               fieldnames=data.fieldnames,
+                                               initialposition=data.initialposition)
 
         return dict(
             name=self.name, cases=case_dict, fieldgroups=fieldgroup_dict,

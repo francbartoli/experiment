@@ -1,19 +1,17 @@
 #!/usr/bin/env python
-"""
-This script auto-generates a RCM data sample on-disk dataset for testing.
-
-"""
+"""This script auto-generates a RCM data sample on-disk dataset for testing."""
 from __future__ import print_function
+
+import errno
+import os
 from collections import namedtuple
 
 import numpy as np
-import os
-import errno
+
+import arrow as rrow
 import pandas as pd
 import xarray as xr
-import arrow as rrow
-
-from experiment import Experiment, Case, Field
+from experiment import Case, Experiment, Field
 
 PATH_TO_DATA = os.path.join(os.path.dirname(__file__), "RCM data")
 SEPARATOR = "_"

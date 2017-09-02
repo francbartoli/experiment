@@ -1,18 +1,20 @@
 
+import os
+import unittest
 from copy import copy, deepcopy
 from io import StringIO
+from itertools import product
 from textwrap import dedent
+
+import yaml
+from experiment import Case, Experiment, Field
+
 try:
     import cPickle as pickle
 except ImportError:
     import pickle
 
-import os
-import unittest
-import yaml
 
-from itertools import product
-from experiment import Experiment, Case, Field
 
 
 case_emis = \
@@ -24,8 +26,8 @@ emptygroup = \
     Field('empty', 'empty', [''], False)
 default_exp_kws = dict(
     name='my_experiment',
-    cases = [case_emis, case_model_config],
-    fieldgroups = [emptygroup],
+    cases=[case_emis, case_model_config],
+    fieldgroups=[emptygroup],
     timeseries=True, data_dir='/path/to/my/data',
     case_path='{emis}/{model_config}',
     output_prefix='experiment_{emis}_{model_config}.data.',
@@ -34,10 +36,13 @@ default_exp_kws = dict(
 )
 
 my_experiment = Experiment(**default_exp_kws)
+
+
 def make_exp(**kwargs):
     kws = dict(default_exp_kws)
     kws.update(**kwargs)
     return Experiment(**kws)
+
 
 class TestExperiment(unittest.TestCase):
 
@@ -216,10 +221,10 @@ class TestExperiment(unittest.TestCase):
 
         exp_all_str = make_exp(
             case_path="{emis}/{model_config}",
-            fieldgroups = [testgroup],
+            fieldgroups=[testgroup],
             output_prefix="experiment_{emis}_{model_config}.data.",
             output_suffix=".tape.nc"
         )
         case_kws = dict(emis='policy', model_config='no_clouds')
 
-        self.assertEqual([case_kws], exp_all_str.get_cases_fromfile(file))
+        self.assertEqual([case_kws], exp_all_str.get_cases_fromfile(file)[0])

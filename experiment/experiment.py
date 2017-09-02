@@ -36,28 +36,29 @@ from __future__ import print_function
 # import logging
 import os
 import warnings
-
 from collections import OrderedDict, namedtuple
 from itertools import product
 
 import numpy as np
+
 import xarray as xr
 import yaml
-
 from tqdm import tqdm
 
 from . import logger
-from . io import load_variable
-from . convert import create_master
+from .convert import create_master
+from .io import load_variable
 
 # logger = logging.getLogger(__name__)
 
 Case = namedtuple('case', ['shortname', 'longname', 'vals'])
-Field = namedtuple('field', ['shortname', 'longname', 'fieldnames', 'initialposition'])
+Field = namedtuple(
+    'field', ['shortname', 'longname', 'fieldnames', 'initialposition'])
 
 #: Hack for Py2/3 basestring type compatibility
 if 'basestring' not in globals():
     basestring = str
+
 
 class Experiment(object):
     """ Experiment ...
@@ -97,7 +98,6 @@ class Experiment(object):
                  output_prefix="",
                  output_suffix=".nc",
                  validate_data=True):
-
         """
         Parameters
         ----------
@@ -185,7 +185,8 @@ class Experiment(object):
         # Add fieldgroups to this instance for "Experiment.[fieldgroup]" access
         for fieldgroup, fieldvals in self._fieldgroup_vals.items():
             setattr(self.__class__, fieldgroup, fieldvals)
-        self.fieldgroup_tuple = namedtuple('field', field_names=self._fieldgroups)
+        self.fieldgroup_tuple = namedtuple(
+            'field', field_names=self._fieldgroups)
 
         self.timeseries = timeseries
         self.output_prefix = output_prefix
@@ -241,7 +242,6 @@ class Experiment(object):
                 yield self.case_path(**case_kws), case_kws
             else:
                 yield self.case_path(**case_kws)
-
 
     def walk_files(self, field, before):
         """ Walk through all the files in this experiment with the given output
@@ -367,25 +367,43 @@ class Experiment(object):
         isant: bool
             True if field is placed before the prefix
         case_kws: dict
-            The dictionary of a particular set of key values for cases from this
-            experiment.
+            The dictionary of a particular set of key values for cases from
+            this experiment.
 
         """
         return [fn for case, fn in self.walk_files(field,
                                                    isant) if case_kws == case]
 
     def get_cases_fromfile(self, filename):
+        """ Return a tuple of lists for any field available from the experiment
+        with the cases that match the input filename.
+
+        Input is expected by including the relative path to the file from the
+        data_dir relative to this experiment.
+
+        Parameters
+        ----------
+        filename : str
+            The name of the file (filepath + filename) to match cases for.
+
         """
-        """
+        tuplecases = tuple()
         for fieldgroup in self.fieldgroups:
             for field in self.get_fieldgroup_vals(fieldgroup)[0]:
-                return [case for case, fn in self.walk_files(field,
-                        self.get_fieldgroup_vals(fieldgroup)[1])
-                        if filename in fn]
+                tuplecases += (
+                    [case for case,
+                     fn in self.walk_files(
+                         field,
+                         self.get_fieldgroup_vals(fieldgroup)[1]
+                     ) if ((field in filename) and (filename in fn))],
+                )
+            return tuplecases
 
     def get_case_bits(self, **case_kws):
         """ Return the given case keywords in the order they're defined in
-        for this experiment. """
+        for this experiment.
+
+        """
         return [case_kws[case] for case in self.cases]
 
     def get_case_kws(self, *case_bits):
@@ -497,7 +515,8 @@ class Experiment(object):
             logger.debug("{} - loading {} timeseries from {}".format(
                 self.name, field, path_to_file
             ))
-            ds = load_variable(field, path_to_file, fix_times=fix_times, **load_kws)
+            ds = load_variable(field, path_to_file,
+                               fix_times=fix_times, **load_kws)
 
             if preprocess is not None:
                 ds = preprocess(ds, **case_kws)
@@ -510,7 +529,8 @@ class Experiment(object):
             for case_kws, filename in self.walk_files(field):
 
                 try:
-                    ds = load_variable(field, filename, fix_times=fix_times, **load_kws)
+                    ds = load_variable(
+                        field, filename, fix_times=fix_times, **load_kws)
 
                     if preprocess is not None:
                         ds = preprocess(ds, **case_kws)
@@ -518,7 +538,8 @@ class Experiment(object):
                     data[self.case_tuple(**case_kws)] = ds
                 except:
                     logger.warn("Could not load case %r" % case_kws)
-                    data[self.case_tuple(**case_kws)] = xr.Dataset({field: np.nan})
+                    data[self.case_tuple(**case_kws)
+                         ] = xr.Dataset({field: np.nan})
 
             if is_var:
                 var._data = data
@@ -533,7 +554,6 @@ class Experiment(object):
                 data = ds_master
 
             return data
-
 
     def create_master(self, var, data=None, **kwargs):
         """ Convenience function to create a master dataset for a
@@ -557,7 +577,6 @@ class Experiment(object):
         """
         return create_master(self, var, data, **kwargs)
 
-
     def master_to_datadict(self, data):
         """ Convert a master Dataset to a data dictionary containing separate
         Datasets for each case. """
@@ -567,11 +586,9 @@ class Experiment(object):
             dd[case_bits] = data.sel(**case_kws)
         return dd
 
-
     def datadict_to_master(self, var, data, **kwargs):
         """ Alias for `create_master` """
         return self.create_master(var, data, **kwargs)
-
 
     @staticmethod
     def apply_to_all(data, func, func_kws={}, verbose=False):
@@ -595,7 +612,6 @@ class Experiment(object):
                 new_data[key] = func(data[key], **func_kws)
         return new_data
 
-
     def to_dict(self):
         """ Return a dictionary representation of the key configuration for
         this Experiment. """
@@ -617,7 +633,6 @@ class Experiment(object):
             data_dir=self.data_dir, validate_data=False
         )
 
-
     def to_yaml(self, path):
         """ Write Experiment configuration to a YAML file.
 
@@ -636,7 +651,6 @@ class Experiment(object):
 
         with open(path, 'w') as yaml_file:
             yaml.dump(d, yaml_file, default_flow_style=False)
-
 
     @classmethod
     def from_yaml(cls, yaml_filename):
@@ -706,7 +720,8 @@ class Experiment(object):
         logger.debug("Reading fieldgroup")
         fieldgroups = []
         for fieldgroup_short, fieldgroup_kws in exp_kwargs['fieldgroups'].items():
-            logger.debug("      {}: {}".format(fieldgroup_short, fieldgroup_kws))
+            logger.debug("      {}: {}".format(
+                fieldgroup_short, fieldgroup_kws))
             fieldgroups.append(Field(fieldgroup_short, **fieldgroup_kws))
         exp_kwargs['fieldgroups'] = fieldgroups
 
@@ -715,7 +730,6 @@ class Experiment(object):
         logger.debug(exp)
 
         return exp
-
 
     def __repr__(self):
         base_str = "{} -".format(self.name)
@@ -742,7 +756,8 @@ class SingleCaseExperiment(Experiment):
 
         """
         cases = [Case(name, name, [name, ]), ]
-        super(self.__class__, self).__init__(name, cases, validate_data=False, **kwargs)
+        super(self.__class__, self).__init__(
+            name, cases, validate_data=False, **kwargs)
 
     def case_path(self, **case_kws):
         """ Overridden get_case_path() method which simply returns the

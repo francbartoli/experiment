@@ -2,10 +2,9 @@
 
 import os
 import warnings
-
-from setuptools import setup, find_packages
-
 from textwrap import dedent
+
+from setuptools import find_packages, setup
 
 DESCRIPTION = "Organizing numerical model experiment output"
 LONG_DESCRIPTION = """\
@@ -45,7 +44,7 @@ CLASSIFIERS = [
 
 MAJOR = 0
 MINOR = 0
-MICRO = 1
+MICRO = 2
 VERSION = "{}.{}.{}".format(MAJOR, MINOR, MICRO)
 DEV = True
 
@@ -61,13 +60,15 @@ if DEV:
 
     if pipe.returncode != 0:
         # no git or something wrong with git (not in dir?)
-        warnings.warn("WARNING: Couldn't identify git revision, using generic version string")
+        warnings.warn(
+            "WARNING: Couldn't identify git revision, using generic version string")
         VERSION += ".dev"
     else:
         git_rev = so.strip()
-        git_rev = git_rev.decode('ascii') # necessary for Python >= 3
+        git_rev = git_rev.decode('ascii')  # necessary for Python >= 3
 
         VERSION += ".dev-{}".format(git_rev)
+
 
 def _write_version_file():
 
@@ -81,33 +82,34 @@ def _write_version_file():
     with open(fn, 'w') as version_file:
         version_file.write(version_str.format(VERSION))
 
+
 # Write version and install
 _write_version_file()
 
 setup(
-    name = DISTNAME,
-    author = AUTHOR,
-    author_email = AUTHOR_EMAIL,
-    maintainer = AUTHOR,
-    maintainer_email = AUTHOR_EMAIL,
-    description = DESCRIPTION,
-    long_description = LONG_DESCRIPTION,
-    license = LICENSE,
-    url = URL,
-    version = VERSION,
-    download_url = DOWNLOAD_URL,
+    name=DISTNAME,
+    author=AUTHOR,
+    author_email=AUTHOR_EMAIL,
+    maintainer=AUTHOR,
+    maintainer_email=AUTHOR_EMAIL,
+    description=DESCRIPTION,
+    long_description=LONG_DESCRIPTION,
+    license=LICENSE,
+    url=URL,
+    version=VERSION,
+    download_url=DOWNLOAD_URL,
 
-    packages = find_packages(),
-    package_data = {},
+    packages=find_packages(),
+    package_data={},
 
-    classifiers = CLASSIFIERS, install_requires=['version',
-                                                 'numpy',
-                                                 'xarray',
-                                                 'dask',
-                                                 'h5py',
-                                                 'netcdf4',
-                                                 'numpy',
-                                                 'pyyaml',
-                                                 'pytest',
-                                                 'tqdm']
+    classifiers=CLASSIFIERS, install_requires=['version',
+                                               'numpy',
+                                               'xarray',
+                                               'dask',
+                                               'h5py',
+                                               'netcdf4',
+                                               'numpy',
+                                               'pyyaml',
+                                               'pytest',
+                                               'tqdm']
 )

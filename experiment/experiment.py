@@ -391,11 +391,13 @@ class Experiment(object):
         for fieldgroup in self.fieldgroups:
             for field in self.get_fieldgroup_vals(fieldgroup)[0]:
                 tuplecases += (
-                    [case for case,
-                     fn in self.walk_files(
-                         field,
-                         self.get_fieldgroup_vals(fieldgroup)[1]
-                     ) if ((field in filename) and (filename in fn))],
+                    (field, [case for case,
+                             fn in self.walk_files(
+                                 field,
+                                 self.get_fieldgroup_vals(fieldgroup)[1]
+                             ) if ((field in filename) and (filename in fn))
+                             ]
+                     ),
                 )
             return tuplecases
 

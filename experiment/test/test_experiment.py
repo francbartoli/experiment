@@ -15,8 +15,6 @@ except ImportError:
     import pickle
 
 
-
-
 case_emis = \
     Case('emis', 'Emissions Scenario', ['policy', 'no_policy', 'weak_policy'])
 case_model_config = \
@@ -227,4 +225,5 @@ class TestExperiment(unittest.TestCase):
         )
         case_kws = dict(emis='policy', model_config='no_clouds')
 
-        self.assertEqual([case_kws], exp_all_str.get_cases_fromfile(file)[0])
+        self.assertEqual(
+            [case_kws], exp_all_str.get_cases_fromfile(file)[0][1])
